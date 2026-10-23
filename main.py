@@ -1,7 +1,9 @@
 """Точка входа проекта custom-archiver."""
 
 import sys
-from core import identify
+
+from archiver.core import identify
+
 
 def main() -> None:
     path = input("Введите путь до файла (или 'create_archive' для теста): ").strip()
