@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZipNext — Онлайн Архиватор</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .archive-container {
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--primary);
+            border-radius: 12px;
+            padding: 2rem;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            background: #eff6ff;
+            margin-bottom: 1.5rem;
+        }
+
+        .drop-zone:hover {
+            background: #dbeafe;
+        }
+
+        .drop-zone icon {
+            font-size: 3rem;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-zone p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .options {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .options label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .select-format {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card-bg);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            background: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        footer {
+            text-align: center;
+            padding: 1rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>📦 ZipNext</h1>
+    </header>
+
+    <main>
+        <div class="archive-container">
+            <!-- Зона сброса файлов -->
+            <div class="drop-zone" id="dropZone">
+                <span>📁</span>
+                <p id="dropText">Перетащите файлы сюда или нажмите для выбора</p>
+                <input type="file" id="fileInput" class="file-input" multiple>
+            </div>
+
+            <!-- Выбор формата -->
+            <div class="options">
+                <label for="format">Формат архива:</label>
+                <select id="format" class="select-format">
+                    <option value="zip">.ZIP (Рекомендуется)</option>
+                    <option value="tar">.TAR</option>
+                </select>
+            </div>
+
+            <!-- Кнопка действия -->
+            <button class="btn" id="archiveBtn" disabled>Создать архив</button>
+            <div class="status" id="statusMessage"></div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 ZipNext. Все файлы обрабатываются прямо в браузере и не передаются на сервер.</p>
+    </footer>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const dropText = document.getElementById('dropText');
+        const archiveBtn = document.getElementById('archiveBtn');
+        const statusMessage = document.getElementById('statusMessage');
+
+        let selectedFiles = [];
+
+        // Клик по зоне открывает выбор файлов
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        // Изменение файлов через проводник
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        // Drag & Drop события
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.background = '#dbeafe';
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.style.background = '#eff6ff';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.background = '#eff6ff';
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            if (files.length > 0) {
+                selectedFiles = Array.from(files);
+                dropText.innerText = `Выбрано файлов: ${selectedFiles.length}`;
+                archiveBtn.disabled = false;
+                statusMessage.innerText = '';
+            }
+        }
+
+        // Имитация архивации при клике
+        archiveBtn.addEventListener('click', () => {
+            archiveBtn.disabled = true;
+            let progress = 0;
+
+            const interval = setInterval(() => {
+                progress += 20;
+                statusMessage.innerText = `Архивация... ${progress}%`;
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    statusMessage.style.color = '#16a34a';
+                    statusMessage.innerText = '✨ Архив успешно создан! (Это демонстрация)';
+                    archiveBtn.disabled = false;
+                }
+            }, 300);
+        });
+    </script>
+</body>
+</html>
